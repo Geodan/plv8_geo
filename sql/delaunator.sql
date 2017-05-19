@@ -60,7 +60,8 @@ do language plv8 'load_module("delaunator")';
 WITH points AS ( 
 	SELECT PC_Explode(pa) pt FROM ahn3_pointcloud.vw_ahn3 
 	WHERE PC_Intersects(ST_MakeEnvelope(120339,488721, 120749,489032,28992),pa)
-)-- 3.1 seconds (2,233,199 points) SELECT count(*) FROM points
+	LIMIT 1000000
+)-- 1.1 seconds (1,000,000 points) SELECT count(*) FROM points
 ,delaunator_agg AS (
 	SELECT 
 	delaunator_agg((PC_Get(pt,'x'),PC_Get(pt,'y'))::dpoint)
@@ -69,16 +70,17 @@ WITH points AS (
 ,delaunator AS (
 	SELECT delaunator(ST_AsGeoJson(ST_Collect(Geometry(pt)))::JSONB)
 	FROM points
-) --8.6 seconds (1.053 calctime)
+) --9.6 seconds (1.556 calctime)
 ,stdelaunay AS (
 	SELECT ST_DelaunayTriangles(ST_Collect(Geometry(pt))) triags
 	FROM points
-) --46.8 seconds
+) --17.6 seconds
 ,triangulate2dz AS (
 	SELECT ST_Triangulate2dz(ST_Collect(Geometry(pt))) triags
 	FROM points
-) --27.3 seconds
+) --13.1 seconds
 SELECT count(*) FROM delaunator
+
 
 
 
