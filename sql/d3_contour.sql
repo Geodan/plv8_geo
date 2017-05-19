@@ -1,49 +1,50 @@
-CREATE OR REPLACE FUNCTION public.d3_contour(arr JSON, tresholds int)
+﻿--DROP FUNCTION public.d3_contour(JSON, int);
+CREATE OR REPLACE FUNCTION public.d3_contour(gtiff bytea, tresholds int)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
-	const flatten = arr => arr.reduce(
-	  (acc, val) => acc.concat(
-	    Array.isArray(val) ? flatten(val) : val
-	  ),
-	  []
-	);
-
-	plv8.elog(NOTICE,'NumValues: ' + arr.length);
 	var startT = new Date();
-	let n = arr.length;
-	let m = arr[0].length;
+	var bytes8 = gtiff;
+	var bytes16 = new Uint16Array(bytes8.buffer);
+	var tiff = GeoTIFF.parse(bytes16.buffer);
+	var image = tiff.getImage(),
+      values = image.readRasters()[0],
+      m = image.getHeight(),
+      n = image.getWidth();
+	plv8.elog(NOTICE,'Width/Height ', n,m);
+	plv8.elog(NOTICE,'NumValues: ' + values.length);
+	
 	var contours = d3.contours()
 	    .size([n, m])
 	    .thresholds(tresholds)
 	    .smooth(true)
-	    (flatten(arr));
+	    (values);
 	var endT = new Date();
 	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
 	return contours;
 $$;
 
-CREATE OR REPLACE FUNCTION public.d3_contour(arr JSON, tresholds int[])
+CREATE OR REPLACE FUNCTION public.d3_contour(gtiff bytea, tresholds int[])
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
-	const flatten = arr => arr.reduce(
-	  (acc, val) => acc.concat(
-	    Array.isArray(val) ? flatten(val) : val
-	  ),
-	  []
-	);
 
-	plv8.elog(NOTICE,'NumValues: ' + arr.length);
 	var startT = new Date();
-	let n = arr.length;
-	let m = arr[0].length;
+	var bytes8 = gtiff;
+	var bytes16 = new Uint16Array(bytes8.buffer);
+	var tiff = GeoTIFF.parse(bytes16.buffer);
+	var image = tiff.getImage(),
+      values = image.readRasters()[0],
+      m = image.getHeight(),
+      n = image.getWidth();
+	plv8.elog(NOTICE,'Width/Height ', n,m);
+	plv8.elog(NOTICE,'NumValues: ' + values.length);
 
 	var contours = d3.contours()
 	    .size([n, m])
 	    .thresholds(tresholds)
 	    .smooth(true)
-	    (flatten(arr));
+	    (values);
 	var endT = new Date();
 	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
 	return contours;
@@ -72,33 +73,36 @@ WITH foo AS (
 ) 
 SELECT d3_contour(array_to_json(ST_DumpValues(rast, 1))) AS values FROM foo;
 
-DROP TABLE IF EXISTS tmp.d3contour;
-CREATE TABLE tmp.d3contour AS
 
+
+
+do language plv8 'load_module("d3")';
+do language plv8 'load_module("d3_contour")';
+do language plv8 'load_module("geotiff")';
+
+DROP TABLE IF EXISTS tmp.tmp;
+CREATE TABLE tmp.tmp AS
 WITH bounds AS (
-	SELECT ST_MakeEnvelope(93784,463805, 93784 + 200,463805 + 200,28992) geom
+	SELECT ST_MakeEnvelope(137236,467884 , 143010,472643,28992) geom
 )
-
-
-,foo AS (
-	SELECT ST_Clip(ST_Union(rast), geom) rast
-	FROM ahn3_raster.rasters, bounds
-	WHERE ST_Intersects(rast, geom)
-	GROUP BY geom
-)
-
-,dump AS (
-	SELECT array_to_json(ST_DumpValues(rast,1)) AS values, rast 
-	FROM foo
-	
+,args AS (
+	SELECT ROW(1, '-10-300:-10-300', '8BUI', NULL)::reclassarg arg
 )
 ,contours AS (
-	SELECT 
-		d3_contour(values) contour, rast
-	FROM dump
+	SELECT d3_contour(ST_AsTiff(
+		ST_Reclass(
+		  ST_Resample(
+			ST_Clip(ST_Union(rast), geom)
+		  ,10,10)
+		,arg)
+		),ARRAY[0,5,10,15,20,25,30]) contour ,
+	ST_Clip(ST_Union(rast),geom) as rast
+	FROM ahn3_raster.rasters, bounds, args
+	WHERE ST_Intersects(rast, geom)
+	GROUP BY geom,arg
 )
 SELECT 
-	contour->>'value' as z, 
+	(contour->>'value')::double precision as z, 
 	ST_Translate(
 		St_Scale(
 			ST_GeomFromGeoJson(contour::TEXT)
@@ -106,5 +110,4 @@ SELECT
 		)
 		,ST_UpperleftX(rast),ST_UpperleftY(rast)
 	) geom
-FROM contours,bounds
-*/
+FROM contours

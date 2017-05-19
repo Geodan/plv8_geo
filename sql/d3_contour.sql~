@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION d3_contour(arr JSON)
+CREATE OR REPLACE FUNCTION public.d3_contour(arr JSON, tresholds int)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
@@ -15,13 +15,50 @@ as $$
 	let m = arr[0].length;
 	var contours = d3.contours()
 	    .size([n, m])
-	    .thresholds(50)
+	    .thresholds(tresholds)
 	    .smooth(true)
 	    (flatten(arr));
 	var endT = new Date();
 	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
 	return contours;
 $$;
+
+CREATE OR REPLACE FUNCTION public.d3_contour(arr JSON, tresholds int[])
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+	const flatten = arr => arr.reduce(
+	  (acc, val) => acc.concat(
+	    Array.isArray(val) ? flatten(val) : val
+	  ),
+	  []
+	);
+
+	plv8.elog(NOTICE,'NumValues: ' + arr.length);
+	var startT = new Date();
+	let n = arr.length;
+	let m = arr[0].length;
+
+	var contours = d3.contours()
+	    .size([n, m])
+	    .thresholds(tresholds)
+	    .smooth(true)
+	    (flatten(arr));
+	var endT = new Date();
+	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+	return contours;
+$$;
+
+
+
+CREATE OR REPLACE FUNCTION public.d3_contour(arr JSON)
+  RETURNS JSONB AS
+' SELECT public.d3_contour($1,10) '
+  LANGUAGE sql STABLE STRICT
+  COST 100;
+
+
+
 
 
 /*EXAMPLE USES:
