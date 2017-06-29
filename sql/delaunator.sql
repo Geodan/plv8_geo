@@ -19,7 +19,7 @@ Comment: Unforunately, the aggregated version is a LOT slower than the direct tr
 **/
 
 DROP TYPE dpoint CASCADE;
-CREATE TYPE dpoint AS (x numeric, y numeric);
+CREATE TYPE dpoint AS (x numeric, y numeric, z numeric);
 
 DROP FUNCTION IF EXISTS public.delaunator_state(points numeric[], point numeric[]) CASCADE;
 CREATE OR REPLACE FUNCTION public.delaunator_state(points dpoint[], point dpoint)
@@ -41,8 +41,18 @@ RETURNS JSONB AS
 $$
 	//plv8.elog(NOTICE,'final',points);
 	var coords = points.map(d=>[d.x, d.y]);
+	var coordinates = [];
 	var delaunay = new Delaunator(coords);
-	return delaunay.triangles;
+	let triangles = delaunay.triangles;
+	for (var i = 0; i < triangles.length; i += 3) {
+		coordinates.push([
+			points[triangles[i]],
+			points[triangles[i + 1]],
+			points[triangles[i + 2]]
+		]);
+	}
+    return coordinates;
+
 $$ language plv8 immutable;
 
 --DROP AGGREGATE IF EXISTS public.delaunator_agg(numeric[]);
@@ -52,7 +62,58 @@ CREATE AGGREGATE public.delaunator_agg(dpoint) (
 	,FINALFUNC=delaunator_final
 	
 );
-
+/*TODO:
+working on a way to get normals for every triangle
+*/
+CREATE OR REPLACE FUNCTION public.delaunator_normals(triangles JSONB) 
+RETURNS JSONB AS
+$$
+	
+	function triangleNormal(p0,p1,p2, output) {
+	  if (!output) output = []
+	  let x0 = p0.x;
+	  let y0 = p0.y;
+	  let z0 = p0.z;
+	  
+	  let x1 = p1.x;
+	  let y1 = p1.y;
+	  let z1 = p1.z;
+	  
+	  let x2 = p2.x;
+	  let y2 = p2.y;
+	  let z2 = p2.z;
+	  
+	  var p1x = x1 - x0
+	  var p1y = y1 - y0
+	  var p1z = z1 - z0
+	
+	  var p2x = x2 - x0
+	  var p2y = y2 - y0
+	  var p2z = z2 - z0
+	
+	  var p3x = p1y * p2z - p1z * p2y
+	  var p3y = p1z * p2x - p1x * p2z
+	  var p3z = p1x * p2y - p1y * p2x
+	
+	  var mag = Math.sqrt(p3x * p3x + p3y * p3y + p3z * p3z)
+	  if (mag === 0) {
+		output[0] = 0
+		output[1] = 0
+		output[2] = 0
+	  } else {
+		output[0] = p3x / mag
+		output[1] = p3y / mag
+		output[2] = p3z / mag
+	  }
+	
+	  return output
+	}
+	let normals = triangles.map(t=>{
+		  return triangleNormal(t[0],t[1],t[2]);
+	}); 
+	plv8.elog(NOTICE,'normals for',JSON.stringify(normals));
+     
+$$ language plv8 immutable;
 
 /*EXAMPLE USES:
 select plv8_startup();
