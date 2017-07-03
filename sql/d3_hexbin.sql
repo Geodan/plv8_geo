@@ -1,3 +1,8 @@
+
+/**
+d3_hexbin
+**/
+
 CREATE OR REPLACE FUNCTION plv8.d3_hexbin(arr1 JSON, arr2 JSON,radius integer)
 RETURNS SETOF JSONB
 immutable language plv8

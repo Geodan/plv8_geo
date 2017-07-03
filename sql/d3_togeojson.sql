@@ -1,3 +1,7 @@
+
+/**
+d3_togeojson
+**/
 DROP FUNCTION IF EXISTS plv8.d3_ToGeoJson(JSONB,JSONB,JSONB);
 CREATE FUNCTION plv8.d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
 RETURNS JSONB
