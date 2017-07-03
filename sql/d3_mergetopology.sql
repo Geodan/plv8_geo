@@ -1,5 +1,5 @@
-DROP FUNCTION d3_MergeTopology(JSONB, TEXT);
-CREATE FUNCTION d3_MergeTopology(topology JSONB,mergekey TEXT)
+DROP FUNCTION plv8.d3_MergeTopology(JSONB, TEXT);
+CREATE FUNCTION plv8.d3_MergeTopology(topology JSONB,mergekey TEXT)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$

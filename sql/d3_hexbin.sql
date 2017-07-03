@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.d3_hexbin(arr1 JSON, arr2 JSON,radius integer)
+CREATE OR REPLACE FUNCTION plv8.d3_hexbin(arr1 JSON, arr2 JSON,radius integer)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
@@ -27,11 +27,11 @@ return res;
 
 $$;
 /* TEST 
-select plv8_startup();
+select plv8.plv8_startup();
 do language plv8 'load_module("d3")';
 do language plv8 'load_module("d3_hexbin")';
 
-SELECT d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["aap","noot","mies"]'::JSON);
+SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["aap","noot","mies"]'::JSON);
 
 DROP TABLE IF EXISTS tmp.hexbin;
 CREATE TABLE tmp.hexbin AS 
@@ -48,7 +48,7 @@ SELECT ST_Transform(ST_MakeEnvelope(524596,6855645 ,562126,6876847,3857),28992) 
 --AND gebrksdoel = 'onderwijsfunctie'
 )
 ,hexbin AS (
-	SELECT d3_hexbin(array_to_json(array_agg(geom)),array_to_json(array_agg(val)),200) AS value 
+	SELECT plv8.d3_hexbin(array_to_json(array_agg(geom)),array_to_json(array_agg(val)),200) AS value 
 	,gebrksdoel 
 	FROM palen
 	GROUP BY gebrksdoel 

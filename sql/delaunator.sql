@@ -1,5 +1,5 @@
-DROP FUNCTION public.delaunator(arr numeric[]);
-CREATE OR REPLACE FUNCTION public.delaunator(points JSONB)
+DROP FUNCTION plv8.delaunator(arr numeric[]);
+CREATE OR REPLACE FUNCTION plv8.delaunator(points JSONB)
 RETURNS JSONB
 immutable language plv8
 as $$
@@ -18,12 +18,12 @@ $$;
 Comment: Unforunately, the aggregated version is a LOT slower than the direct triangulation with GeoJSON
 **/
 
-DROP TYPE dpoint CASCADE;
-CREATE TYPE dpoint AS (x numeric, y numeric, z numeric);
+DROP TYPE plv8.dpoint CASCADE;
+CREATE TYPE plv8.dpoint AS (x numeric, y numeric, z numeric);
 
-DROP FUNCTION IF EXISTS public.delaunator_state(points numeric[], point numeric[]) CASCADE;
-CREATE OR REPLACE FUNCTION public.delaunator_state(points dpoint[], point dpoint)
-RETURNS dpoint[] AS
+DROP FUNCTION IF EXISTS plv8.delaunator_state(points numeric[], point numeric[]) CASCADE;
+CREATE OR REPLACE FUNCTION plv8.delaunator_state(points plv8.dpoint[], point plv8.dpoint)
+RETURNS plv8.dpoint[] AS
 $$
 	//plv8.elog(NOTICE,'state',points);
 	if (points == null) points = [];
@@ -35,8 +35,8 @@ $$
 	}
 $$ language plv8 immutable;
 
---DROP FUNCTION IF EXISTS public.delaunator_final(points numeric[]) CASCADE;
-CREATE OR REPLACE FUNCTION public.delaunator_final(points dpoint[])
+--DROP FUNCTION IF EXISTS plv8.delaunator_final(points numeric[]) CASCADE;
+CREATE OR REPLACE FUNCTION plv8.delaunator_final(points plv8.dpoint[])
 RETURNS JSONB AS
 $$
 	//plv8.elog(NOTICE,'final',points);
@@ -55,17 +55,17 @@ $$
 
 $$ language plv8 immutable;
 
---DROP AGGREGATE IF EXISTS public.delaunator_agg(numeric[]);
-CREATE AGGREGATE public.delaunator_agg(dpoint) (
+--DROP AGGREGATE IF EXISTS plv8.delaunator_agg(numeric[]);
+CREATE AGGREGATE plv8.delaunator_agg(plv8.dpoint) (
 	SFUNC=delaunator_state,
-	STYPE=dpoint[]
+	STYPE=plv8.dpoint[]
 	,FINALFUNC=delaunator_final
 	
 );
 /*TODO:
 working on a way to get normals for every triangle
 */
-CREATE OR REPLACE FUNCTION public.delaunator_normals(triangles JSONB) 
+CREATE OR REPLACE FUNCTION plv8.delaunator_normals(triangles JSONB) 
 RETURNS JSONB AS
 $$
 	
@@ -116,7 +116,7 @@ $$
 $$ language plv8 immutable;
 
 /*EXAMPLE USES:
-select plv8_startup();
+select plv8.plv8_startup();
 do language plv8 'load_module("delaunator")';
 WITH points AS ( 
 	SELECT PC_Explode(pa) pt FROM ahn3_pointcloud.vw_ahn3 
@@ -125,11 +125,11 @@ WITH points AS (
 )-- 1.1 seconds (1,000,000 points) SELECT count(*) FROM points
 ,delaunator_agg AS (
 	SELECT 
-	delaunator_agg((PC_Get(pt,'x'),PC_Get(pt,'y'))::dpoint)
+	plv8.delaunator_agg((PC_Get(pt,'x'),PC_Get(pt,'y'))::plv8.dpoint)
 	FROM points
 )
 ,delaunator AS (
-	SELECT delaunator(ST_AsGeoJson(ST_Collect(Geometry(pt)))::JSONB)
+	SELECT plv8.delaunator(ST_AsGeoJson(ST_Collect(Geometry(pt)))::JSONB)
 	FROM points
 ) --9.6 seconds (1.556 calctime)
 ,stdelaunay AS (
@@ -145,7 +145,7 @@ SELECT count(*) FROM delaunator
 
 
 
-select plv8_startup();
+select plv8.plv8_startup();
 do language plv8 'load_module("delaunator")';
-SELECT delaunator([[1,1],[10,10],[5,5]]) AS values FROM foo;
+SELECT plv8.delaunator([[1,1],[10,10],[5,5]]) AS values FROM foo;
 */

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.slope(gtiff bytea)
+CREATE OR REPLACE FUNCTION plv8.slope(gtiff bytea)
 RETURNS JSONB
 immutable language plv8
 as $$
@@ -51,7 +51,7 @@ as $$
 $$;
 
 /*EXAMPLE USES:
-select plv8_startup();
+select plv8.plv8_startup();
 do language plv8 'load_module("d3")';
 do language plv8 'load_module("d3_contour")';
 
@@ -59,6 +59,6 @@ do language plv8 'load_module("d3_contour")';
 WITH foo AS (
 	SELECT ST_SetValue(ST_AddBand(ST_MakeEmptyRaster(3, 3, 0, 0, 1, -1, 0, 0, 0), 1, '8BUI', 1, 0), 1, 2, 5) AS rast
 ) 
-SELECT slope(ST_AsTiff(rast)) AS values FROM foo;
+SELECT plv8.slope(ST_AsTiff(rast)) AS values FROM foo;
 
 */

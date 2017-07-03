@@ -1,5 +1,5 @@
-DROP FUNCTION public.d3_slopecontours(gtiff bytea,tresholds int);
-CREATE OR REPLACE FUNCTION public.d3_slopecontours(gtiff bytea,tresholds int)
+DROP FUNCTION plv8.d3_slopecontours(gtiff bytea,tresholds int);
+CREATE OR REPLACE FUNCTION plv8.d3_slopecontours(gtiff bytea,tresholds int)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
@@ -66,7 +66,7 @@ as $$
 $$;
 
 /*EXAMPLE USES:*/
-select plv8_startup();
+select plv8.plv8_startup();
 do language plv8 'load_module("geotiff")';
 SET postgis.enable_outdb_rasters = True;
 SET postgis.gdal_enabled_drivers = 'ENABLE_ALL';
@@ -76,7 +76,7 @@ WITH bounds AS (
 )
 ,slope AS (
 	SELECT 
-	d3_slopecontours(ST_AsTiff(ST_Clip(ST_Union(rast), geom)),10) AS contour 
+	plv8.d3_slopecontours(ST_AsTiff(ST_Clip(ST_Union(rast), geom)),10) AS contour 
 	FROM ahn3_raster.rast50cm_tiled, bounds
 	WHERE ST_Intersects(rast, geom)
 	GROUP BY geom
