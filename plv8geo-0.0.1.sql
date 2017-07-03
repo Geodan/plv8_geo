@@ -1,1 +1,1 @@
-\echo Use "CREATE EXTENSION base36" to load this file. \quit
+\echo Use "CREATE EXTENSION plv8geo" to load this file. \quit

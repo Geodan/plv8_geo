@@ -1,0 +1,4 @@
+# plv8geo extension
+comment = 'plv8geo functions'
+default_version = '0.0.1'
+relocatable = true
