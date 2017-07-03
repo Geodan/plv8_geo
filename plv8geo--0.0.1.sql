@@ -1,4 +1,495 @@
 \echo Use "CREATE EXTENSION plv8geo" to load this file. \quit
+
+/**
+Arctogeom
+**/
+DROP FUNCTION  IF EXISTS plv8.d3_arctogeom(JSONB, JSONB);
+CREATE FUNCTION plv8.d3_arctogeom(arc JSONB, transform JSONB)
+RETURNS geometry
+immutable language plv8
+AS $$
+ 
+	function decodeArc(transform, arc) {
+	  var x = 0, y = 0;
+	 
+	  return arc.map(function(position) {
+	    position = position.slice();
+	    position[0] = (x += position[0]) * transform.scale[0] + transform.translate[0];
+	    position[1] = (y += position[1]) * transform.scale[1] + transform.translate[1];
+	    return position;
+	  });
+	}
+
+	var startT = new Date();
+	var geojson = {
+		type: 'LineString',
+		coordinates: decodeArc(transform,arc)
+	}
+	
+	var plan = plv8.prepare( 'SELECT ST_GeomFromGeoJSON($1) as bbox', ['text'] );
+	var rows = plan.execute( JSON.stringify(geojson) );
+	var endT = new Date();
+	//plv8.elog(NOTICE,'Topotime: ' + (endT - startT)/1000);
+	return rows[0].bbox;
+$$;
+
+/**
+d3_contour
+**/
+DROP FUNCTION IF EXISTS plv8.d3_contour(JSON, int);
+CREATE OR REPLACE FUNCTION plv8.d3_contour(gtiff bytea, tresholds int)
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+	var startT = new Date();
+	var bytes8 = gtiff;
+	var bytes16 = new Uint16Array(bytes8.buffer);
+	var tiff = GeoTIFF.parse(bytes16.buffer);
+	var image = tiff.getImage(),
+      values = image.readRasters()[0],
+      m = image.getHeight(),
+      n = image.getWidth();
+	plv8.elog(NOTICE,'Width/Height ', n,m);
+	plv8.elog(NOTICE,'NumValues: ' + values.length);
+	
+	var contours = d3.contours()
+	    .size([n, m])
+	    .thresholds(tresholds)
+	    .smooth(true)
+	    (values);
+	var endT = new Date();
+	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+	return contours;
+$$;
+
+DROP FUNCTION IF EXISTS plv8.d3_contour(gtiff bytea, tresholds int[]);
+CREATE OR REPLACE FUNCTION plv8.d3_contour(gtiff bytea, tresholds int[])
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+
+	var startT = new Date();
+	var bytes8 = gtiff;
+	var bytes16 = new Uint16Array(bytes8.buffer);
+	var tiff = GeoTIFF.parse(bytes16.buffer);
+	var image = tiff.getImage(),
+      values = image.readRasters()[0],
+      m = image.getHeight(),
+      n = image.getWidth();
+	plv8.elog(NOTICE,'Width/Height ', n,m);
+	plv8.elog(NOTICE,'NumValues: ' + values.length);
+
+	var contours = d3.contours()
+	    .size([n, m])
+	    .thresholds(tresholds)
+	    .smooth(true)
+	    (values);
+	var endT = new Date();
+	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+	return contours;
+$$;
+
+/*TODO fix this
+DROP FUNCTION IF EXISTS plv8.d3_contour(arr JSON);
+CREATE OR REPLACE FUNCTION plv8.d3_contour(arr JSON)
+  RETURNS JSONB AS
+' SELECT plv8.d3_contour($1,10) '
+  LANGUAGE sql STABLE STRICT
+  COST 100;*/
+
+
+
+
+
+/*
+EXAMPLE USES:
+select plv8.plv8_startup();
+do language plv8 'load_module("d3")';
+do language plv8 'load_module("d3_contour")';
+
+
+WITH foo AS (
+	SELECT ST_SetValue(ST_AddBand(ST_MakeEmptyRaster(3, 3, 0, 0, 1, -1, 0, 0, 0), 1, '8BUI', 1, 0), 1, 2, 5) AS rast
+) 
+SELECT d3_contour(array_to_json(ST_DumpValues(rast, 1))) AS values FROM foo;
+
+
+
+
+do language plv8 'load_module("d3")';
+do language plv8 'load_module("d3_contour")';
+do language plv8 'load_module("geotiff")';
+
+DROP TABLE IF EXISTS tmp.tmp;
+CREATE TABLE tmp.tmp AS
+WITH bounds AS (
+	SELECT ST_MakeEnvelope(137236,467884 , 143010,472643,28992) geom
+)
+,args AS (
+	SELECT ROW(1, '-10-300:-10-300', '8BUI', NULL)::reclassarg arg
+)
+,contours AS (
+	SELECT plv8.d3_contour(ST_AsTiff(
+		ST_Reclass(
+		  ST_Resample(
+			ST_Clip(ST_Union(rast), geom)
+		  ,10,10)
+		,arg)
+		),ARRAY[0,5,10,15,20,25,30]) contour ,
+	ST_Clip(ST_Union(rast),geom) as rast
+	FROM ahn3_raster.rasters, bounds, args
+	WHERE ST_Intersects(rast, geom)
+	GROUP BY geom,arg
+)
+SELECT 
+	(contour->>'value')::double precision as z, 
+	ST_Translate(
+		St_Scale(
+			ST_GeomFromGeoJson(contour::TEXT)
+			,ST_ScaleX(rast),ST_ScaleY(rast)
+		)
+		,ST_UpperleftX(rast),ST_UpperleftY(rast)
+	) geom
+FROM contours
+
+*/
+
+/**
+d3_hexbin
+**/
+
+CREATE OR REPLACE FUNCTION plv8.d3_hexbin(arr1 JSON, arr2 JSON,radius integer)
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+if (arr1.length != arr2.length){
+	plv8.elog(ERROR, 'Arrays are not same length');
+}
+let arr = arr1.map((d,i)=>{
+	return {0:d[0],1:d[1],"key":arr2[i]};
+});
+
+//plv8.elog(NOTICE,JSON.stringify(arr));
+var startT = new Date();
+var hexbin = d3.hexbin()
+    .extent([[d3.min(arr1, d=>d.x), d3.min(arr1, d=>d.y)], [d3.max(arr1, d=>d.x), d3.max(arr1, d=>d.y)]])
+    .radius(radius);
+let bins = hexbin(arr);
+let res = bins.map(b=>{
+	//Silly map because plv8 has problems with mixed arrays
+	return {x:b.x,y:b.y, data: b};
+});
+//plv8.elog(NOTICE,JSON.stringify(res));
+var endT = new Date();
+plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+
+return res;
+
+$$;
+/* TEST 
+select plv8.plv8_startup();
+do language plv8 'load_module("d3")';
+do language plv8 'load_module("d3_hexbin")';
+
+SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["aap","noot","mies"]'::JSON);
+
+DROP TABLE IF EXISTS tmp.hexbin;
+CREATE TABLE tmp.hexbin AS 
+WITH 
+bounds AS (
+SELECT ST_Transform(ST_MakeEnvelope(524596,6855645 ,562126,6876847,3857),28992) box
+)
+,palen AS (
+	SELECT 
+	ARRAY[ST_X(geom), ST_Y(geom)] geom
+	,'test':: as val
+	,gebrksdoel 
+	FROM bagagn_201702.adressen , bounds WHERE ST_Intersects(box,geom)
+--AND gebrksdoel = 'onderwijsfunctie'
+)
+,hexbin AS (
+	SELECT plv8.d3_hexbin(array_to_json(array_agg(geom)),array_to_json(array_agg(val)),200) AS value 
+	,gebrksdoel 
+	FROM palen
+	GROUP BY gebrksdoel 
+)
+
+SELECT ST_MakePoint((value->>'x')::double precision, (value->>'y')::double precision,28992) geom,
+jsonb_array_length(value->'data') num 
+,gebrksdoel 
+FROM hexbin;
+
+*/
+
+/**
+d3_mergetopology
+**/
+
+DROP FUNCTION plv8.d3_MergeTopology(JSONB, TEXT);
+CREATE FUNCTION plv8.d3_MergeTopology(topology JSONB,mergekey TEXT)
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+	var startT = new Date();
+	var feats = [];
+	var data = topojson.feature(topology, topology.objects.entities).features;
+	var fips = d3.map(data, function(d){return d.properties[mergekey];}).keys()
+	//plv8.elog(NOTICE, JSON.stringify(fips));
+	// and merge by fips
+	fips.forEach(function(fip) {
+	    //var geometries = [topology.objects.entities.geometries[0]];
+	    
+	    var geometries = topology.objects.entities.geometries.filter(
+		function(d) {
+			//plv8.elog(NOTICE, JSON.stringify(d));
+			return d.properties[mergekey]== fip; 
+		}
+	    );
+	    var geom = topojson.merge(topology, geometries);
+	    var feat = {
+		type: "Feature", 
+		geometry: geom,
+		properties: {}
+	    };
+	    feat.properties[mergekey] = fip;
+	    //plv8.elog(NOTICE, JSON.stringify(feat));
+	    feats.push(feat);
+	});
+	var endT = new Date();
+	//plv8.elog(NOTICE,'Mergetime: ' + (endT - startT)/1000);
+	return feats;
+$$;
+
+/**
+d3_simlifytopology
+**/
+
+DROP FUNCTION plv8.d3_SimplifyTopology(JSONB, numeric);
+CREATE FUNCTION plv8.d3_SimplifyTopology(topology JSONB,factor numeric)
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+	var startT = new Date();
+	//plv8.elog(NOTICE,JSON.stringify(topology));
+	var presimplified = topojson.presimplify(topology);
+	var collection = topojson.simplify(presimplified,factor);
+	var endT = new Date();
+	//plv8.elog(NOTICE,'Conversiontime: ' + (endT - startT)/1000);
+	return collection;
+$$;
+
+/**
+d3_slopecontours
+**/
+DROP FUNCTION plv8.d3_slopecontours(gtiff bytea,tresholds int);
+CREATE OR REPLACE FUNCTION plv8.d3_slopecontours(gtiff bytea,tresholds int)
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+	const flatten = arr => arr.reduce(
+	  (acc, val) => acc.concat(
+		Array.isArray(val) ? flatten(val) : val
+	  ),
+	  []
+	);
+
+	var startT = new Date();
+	var bytes8 = gtiff;
+	var bytes16 = new Uint16Array(bytes8.buffer);
+	var tiff = GeoTIFF.parse(bytes16.buffer);
+	var image = tiff.getImage(),
+	  m = image.getHeight(),
+	  n = image.getWidth();
+	var rasters = image.readRasters();
+	var tiepoint = image.getTiePoints()[0];
+	var pixelScale = image.getFileDirectory().ModelPixelScale;
+	var geoTransform = [tiepoint.x, pixelScale[0], 0, tiepoint.y, 0, -1*pixelScale[1]];
+	var invGeoTransform = [-geoTransform[0]/geoTransform[1], 1/geoTransform[1],0,-geoTransform[3]/geoTransform[5],0,1/geoTransform[5]];
+	
+	var altData = new Array(image.getHeight());
+	for (var j = 0; j<image.getHeight(); j++){
+	  altData[j] = new Array(image.getWidth());
+	  for (var i = 0; i<image.getWidth(); i++){
+		  altData[j][i] = rasters[0][i + j*image.getWidth()];
+	  }
+	}
+	var shadedData = new Array(image.getHeight());
+	for (var j = 0; j<image.getHeight(); j++){
+	  shadedData[j] = new Array(image.getWidth());
+	  for (var i = 0; i<image.getWidth(); i++){
+		var gradX, gradY;
+		if(i==0) gradX = altData[j][i+1] - altData[j][i];
+		else if(i==image.getWidth()-1) gradX = altData[j][i] - altData[j][i-1];
+		else gradX = (altData[j][i+1] - altData[j][i])/2 + (altData[j][i] - altData[j][i-1])/2;
+	
+		if(j==0) gradY = altData[j+1][i] - altData[j][i];
+		else if(j==image.getHeight()-1) gradY = altData[j][i] - altData[j-1][i];
+		else gradY = (altData[j+1][i] - altData[j][i])/2 + (altData[j][i] - altData[j-1][i])/2;
+	
+		var slope = Math.PI/2 - Math.atan(Math.sqrt(gradX*gradX + gradY*gradY));
+		var aspect = Math.atan2(-gradY, gradX);
+	
+		shadedData[j][i] = slope;
+		/*shadedData[j][i] = Math.sin(altituderad) * Math.sin(slope)
+		  + Math.cos(altituderad) * Math.cos(slope)
+		  * Math.cos(azimuthrad - aspect);
+	    */
+	  }
+	}
+	//plv8.elog(NOTICE,shadedData);
+	var contours = d3.contours()
+	    .size([n, m])
+	    .thresholds(tresholds)
+	    .smooth(true)
+	    (flatten(shadedData));
+	var endT = new Date();
+	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+
+	return contours;
+$$;
+
+/*EXAMPLE USES:
+select plv8.plv8_startup();
+do language plv8 'load_module("geotiff")';
+SET postgis.enable_outdb_rasters = True;
+SET postgis.gdal_enabled_drivers = 'ENABLE_ALL';
+
+WITH bounds AS (
+	SELECT (ST_MakeEnvelope(120344,488936, 120370,488957,28992)) geom
+)
+,slope AS (
+	SELECT 
+	plv8.d3_slopecontours(ST_AsTiff(ST_Clip(ST_Union(rast), geom)),10) AS contour 
+	FROM ahn3_raster.rast50cm_tiled, bounds
+	WHERE ST_Intersects(rast, geom)
+	GROUP BY geom
+)
+SELECT ST_GeomFromGeoJson(contour::TEXT) FROM slope;
+*/
+
+/**
+d3_togeojson
+**/
+DROP FUNCTION IF EXISTS plv8.d3_ToGeoJson(JSONB,JSONB,JSONB);
+CREATE FUNCTION plv8.d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
+RETURNS JSONB
+immutable language plv8
+as $$
+	var startT = new Date();
+	
+	var result = [];
+
+	function decodeArc(transform, arc) {
+	  var x = 0, y = 0;
+	  return arc.map(function(position) {
+	    position = position.slice();
+	    position[0] = (x += position[0]) * transform.scale[0] + transform.translate[0];
+	    position[1] = (y += position[1]) * transform.scale[1] + transform.translate[1];
+	    return position;
+	  });
+	}
+	
+	var arcsundelta = arcs.map(function(a){
+		return {id: a.id, coords: decodeArc(transform, a.data)};
+		//return {id: a.id, coords: a.data};
+	});
+	
+	entity.arcs[0].forEach(function(id,i){
+		//watch out, negative index is -1 based
+		var coords = arcsundelta.find(d=>(d.id == id && id >=0)||(d.id == Math.abs(id)-1 && id <0) ).coords;
+		if (id < 0){
+		  coords.reverse();
+		}
+		if (i<entity.arcs[0].length){
+			coords.pop();//remove last element
+		}
+		coords.forEach(c=>result.push(c));
+	});
+	result.push(result[0]);
+	delete entity.arcs;
+	entity.geometry = {
+		coordinates: [result],
+		type: entity.type
+	};
+	entity.type = 'Feature';
+	
+	var endT = new Date();
+	//plv8.elog(NOTICE,'Topotime: ' + (endT - startT)/1000);
+	//plv8.elog(NOTICE,JSON.stringify(entity));	
+	return entity;
+$$;
+
+/**
+d3_topobbox
+**/
+DROP FUNCTION IF EXISTS plv8.d3_topobbox(JSONB, JSONB);
+CREATE FUNCTION plv8.d3_topobbox(arc JSONB, transform JSONB)
+RETURNS geometry
+immutable language plv8
+AS $$
+	function decodeArc(transform, arc) {
+	  var x = 0, y = 0;
+	  return arc.map(function(position) {
+	    position = position.slice();
+	    position[0] = (x += position[0]) * transform.scale[0] + transform.translate[0];
+	    position[1] = (y += position[1]) * transform.scale[1] + transform.translate[1];
+	    return position;
+	  });
+	}
+
+	var startT = new Date();
+	var xmin = d3.min(arc,d=>d[0]);
+	var xmax = d3.max(arc,d=>d[0]);
+	var ymin = d3.min(arc,d=>d[1]);
+	var ymax = d3.max(arc,d=>d[1]);
+	/* TODO: future work to get a binary geometry back
+	var wkx = require('wkx');
+	var wkt = 'POLYGON(('+xmin +' '+ymin+','+xmax+' '+ ymax+'))';
+	var geometry = wkx.Geometry.parse(wkt);
+	*/
+	var plan = plv8.prepare( 'SELECT ST_MakeEnvelope($1,$2,$3,$4) as bbox', ['float','float','float','float'] );
+	var rows = plan.execute( xmin,ymin, xmax, ymax );
+	var endT = new Date();
+	//plv8.elog(NOTICE,'Topotime: ' + (endT - startT)/1000);
+	return rows[0].bbox;
+$$;
+
+/**
+d3_topologytofeatures
+**/
+
+DROP FUNCTION IF EXISTS plv8.d3_TopologyToFeatures(topology JSONB);
+CREATE FUNCTION plv8.d3_TopologyToFeatures(topology JSONB)
+RETURNS SETOF JSONB
+immutable language plv8
+as $$
+	var startT = new Date();
+	//plv8.elog(NOTICE,JSON.stringify(topology));
+	var collection = topojson.feature(topology, topology.objects.entities) 
+	var endT = new Date();
+	//plv8.elog(NOTICE,'Conversiontime: ' + (endT - startT)/1000);
+	return collection.features;
+$$;
+
+/**
+d3_totopojson
+**/
+DROP FUNCTION IF EXISTS plv8.d3_ToTopojson(collection JSONB, numeric);
+CREATE FUNCTION plv8.d3_ToTopojson(collection JSONB,q numeric)
+RETURNS JSONB
+immutable language plv8
+as $$
+	var startT = new Date();
+	var topo = topojson.topology({entities: collection},q);
+	var endT = new Date();
+	//plv8.elog(NOTICE,'Topotime: ' + (endT - startT)/1000);
+	//plv8.elog(NOTICE,JSON.stringify(topo));
+	return topo;
+$$;
+
+/**
+delaunator
+**/
 DROP FUNCTION plv8.delaunator(arr numeric[]);
 CREATE OR REPLACE FUNCTION plv8.delaunator(points JSONB)
 RETURNS JSONB
@@ -149,4 +640,72 @@ SELECT count(*) FROM delaunator
 select plv8.plv8_startup();
 do language plv8 'load_module("delaunator")';
 SELECT plv8.delaunator([[1,1],[10,10],[5,5]]) AS values FROM foo;
+*/
+/**
+slope
+**/
+DROP FUNCTION IF EXISTS plvg.slope(bytea);
+CREATE OR REPLACE FUNCTION plv8.slope(gtiff bytea)
+RETURNS JSONB
+immutable language plv8
+as $$
+	var startT = new Date();
+	var bytes8 = gtiff;
+	var bytes16 = new Uint16Array(bytes8.buffer);
+	var tiff = GeoTIFF.parse(bytes16.buffer);
+	var image = tiff.getImage();
+	
+	var rasters = image.readRasters();
+	var tiepoint = image.getTiePoints()[0];
+	var pixelScale = image.getFileDirectory().ModelPixelScale;
+	var geoTransform = [tiepoint.x, pixelScale[0], 0, tiepoint.y, 0, -1*pixelScale[1]];
+	var invGeoTransform = [-geoTransform[0]/geoTransform[1], 1/geoTransform[1],0,-geoTransform[3]/geoTransform[5],0,1/geoTransform[5]];
+	
+	var altData = new Array(image.getHeight());
+	for (var j = 0; j<image.getHeight(); j++){
+	  altData[j] = new Array(image.getWidth());
+	  for (var i = 0; i<image.getWidth(); i++){
+		  altData[j][i] = rasters[0][i + j*image.getWidth()];
+	  }
+	}
+	var shadedData = new Array(image.getHeight());
+	for (var j = 0; j<image.getHeight(); j++){
+	  shadedData[j] = new Array(image.getWidth());
+	  for (var i = 0; i<image.getWidth(); i++){
+		var gradX, gradY;
+		if(i==0) gradX = altData[j][i+1] - altData[j][i];
+		else if(i==image.getWidth()-1) gradX = altData[j][i] - altData[j][i-1];
+		else gradX = (altData[j][i+1] - altData[j][i])/2 + (altData[j][i] - altData[j][i-1])/2;
+	
+		if(j==0) gradY = altData[j+1][i] - altData[j][i];
+		else if(j==image.getHeight()-1) gradY = altData[j][i] - altData[j-1][i];
+		else gradY = (altData[j+1][i] - altData[j][i])/2 + (altData[j][i] - altData[j-1][i])/2;
+	
+		var slope = Math.PI/2 - Math.atan(Math.sqrt(gradX*gradX + gradY*gradY));
+		var aspect = Math.atan2(-gradY, gradX);
+	
+		shadedData[j][i] = slope;
+		/*shadedData[j][i] = Math.sin(altituderad) * Math.sin(slope)
+		  + Math.cos(altituderad) * Math.cos(slope)
+		  * Math.cos(azimuthrad - aspect);
+	    */
+	  }
+	}
+	var endT = new Date();
+	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+	//plv8.elog(NOTICE,shadedData);
+	return shadedData;
+$$;
+
+/*EXAMPLE USES:
+select plv8.plv8_startup();
+do language plv8 'load_module("d3")';
+do language plv8 'load_module("d3_contour")';
+
+
+WITH foo AS (
+	SELECT ST_SetValue(ST_AddBand(ST_MakeEmptyRaster(3, 3, 0, 0, 1, -1, 0, 0, 0), 1, '8BUI', 1, 0), 1, 2, 5) AS rast
+) 
+SELECT plv8.slope(ST_AsTiff(rast)) AS values FROM foo;
+
 */

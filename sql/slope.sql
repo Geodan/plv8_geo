@@ -1,3 +1,7 @@
+/**
+slope
+**/
+DROP FUNCTION IF EXISTS plvg.slope(bytea);
 CREATE OR REPLACE FUNCTION plv8.slope(gtiff bytea)
 RETURNS JSONB
 immutable language plv8

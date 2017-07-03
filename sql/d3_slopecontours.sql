@@ -1,3 +1,7 @@
+
+/**
+d3_slopecontours
+**/
 DROP FUNCTION plv8.d3_slopecontours(gtiff bytea,tresholds int);
 CREATE OR REPLACE FUNCTION plv8.d3_slopecontours(gtiff bytea,tresholds int)
 RETURNS SETOF JSONB

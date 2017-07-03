@@ -1,4 +1,8 @@
-﻿DROP FUNCTION IF EXISTS plv8.d3_contour(JSON, int);
+﻿
+/**
+d3_contour
+**/
+DROP FUNCTION IF EXISTS plv8.d3_contour(JSON, int);
 CREATE OR REPLACE FUNCTION plv8.d3_contour(gtiff bytea, tresholds int)
 RETURNS SETOF JSONB
 immutable language plv8
