@@ -2,7 +2,7 @@
 /**
 delaunator
 **/
-DROP FUNCTION plv8.delaunator(arr numeric[]);
+DROP FUNCTION IF EXISTS plv8.delaunator(arr numeric[]);
 CREATE OR REPLACE FUNCTION plv8.delaunator(points JSONB)
 RETURNS JSONB
 immutable language plv8
@@ -22,7 +22,7 @@ as $$
 Comment: Unforunately, the aggregated version is a LOT slower than the direct triangulation with GeoJSON
 **/
 
-DROP TYPE plv8.dpoint CASCADE;
+DROP TYPE IF EXISTS plv8.dpoint CASCADE;
 CREATE TYPE plv8.dpoint AS (x numeric, y numeric, z numeric);
 
 DROP FUNCTION IF EXISTS plv8.delaunator_state(points numeric[], point numeric[]) CASCADE;
