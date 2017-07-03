@@ -1,4 +1,4 @@
-﻿--DROP FUNCTION plv8.d3_contour(JSON, int);
+﻿DROP FUNCTION IF EXISTS plv8.d3_contour(JSON, int);
 CREATE OR REPLACE FUNCTION plv8.d3_contour(gtiff bytea, tresholds int)
 RETURNS SETOF JSONB
 immutable language plv8
@@ -24,6 +24,7 @@ as $$
 	return contours;
 $$;
 
+DROP FUNCTION IF EXISTS plv8.d3_contour(gtiff bytea, tresholds int[]);
 CREATE OR REPLACE FUNCTION plv8.d3_contour(gtiff bytea, tresholds int[])
 RETURNS SETOF JSONB
 immutable language plv8
@@ -50,19 +51,20 @@ as $$
 	return contours;
 $$;
 
-
-
+/*TODO fix this
+DROP FUNCTION IF EXISTS plv8.d3_contour(arr JSON);
 CREATE OR REPLACE FUNCTION plv8.d3_contour(arr JSON)
   RETURNS JSONB AS
-' SELECT public.d3_contour($1,10) '
+' SELECT plv8.d3_contour($1,10) '
   LANGUAGE sql STABLE STRICT
-  COST 100;
+  COST 100;*/
 
 
 
 
 
-/*EXAMPLE USES:
+/*
+EXAMPLE USES:
 select plv8.plv8_startup();
 do language plv8 'load_module("d3")';
 do language plv8 'load_module("d3_contour")';
@@ -111,3 +113,5 @@ SELECT
 		,ST_UpperleftX(rast),ST_UpperleftY(rast)
 	) geom
 FROM contours
+
+*/

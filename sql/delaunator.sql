@@ -57,9 +57,9 @@ $$ language plv8 immutable;
 
 --DROP AGGREGATE IF EXISTS plv8.delaunator_agg(numeric[]);
 CREATE AGGREGATE plv8.delaunator_agg(plv8.dpoint) (
-	SFUNC=delaunator_state,
+	SFUNC=plv8.delaunator_state,
 	STYPE=plv8.dpoint[]
-	,FINALFUNC=delaunator_final
+	,FINALFUNC=plv8.delaunator_final
 	
 );
 /*TODO:

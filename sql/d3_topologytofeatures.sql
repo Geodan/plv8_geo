@@ -1,4 +1,4 @@
-DROP FUNCTION plv8.d3_TopologyToFeatures(topology JSONB);
+DROP FUNCTION IF EXISTS plv8.d3_TopologyToFeatures(topology JSONB);
 CREATE FUNCTION plv8.d3_TopologyToFeatures(topology JSONB)
 RETURNS SETOF JSONB
 immutable language plv8

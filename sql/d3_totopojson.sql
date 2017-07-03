@@ -1,4 +1,4 @@
-DROP FUNCTION  plv8.d3_ToTopojson(collection JSONB, numeric);
+DROP FUNCTION IF EXISTS plv8.d3_ToTopojson(collection JSONB, numeric);
 CREATE FUNCTION plv8.d3_ToTopojson(collection JSONB,q numeric)
 RETURNS JSONB
 immutable language plv8

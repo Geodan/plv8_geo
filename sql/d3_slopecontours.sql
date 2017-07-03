@@ -65,7 +65,7 @@ as $$
 	return contours;
 $$;
 
-/*EXAMPLE USES:*/
+/*EXAMPLE USES:
 select plv8.plv8_startup();
 do language plv8 'load_module("geotiff")';
 SET postgis.enable_outdb_rasters = True;
@@ -82,4 +82,4 @@ WITH bounds AS (
 	GROUP BY geom
 )
 SELECT ST_GeomFromGeoJson(contour::TEXT) FROM slope;
-/**/
+*/
