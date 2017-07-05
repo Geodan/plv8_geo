@@ -1,6 +1,6 @@
 \echo Use "CREATE EXTENSION plv8geo" to load this file. \quit
-CREATE TABLE IF NOT EXISTS public.plv8_modules(modname text primary key, load_on_start boolean, code text);
-CREATE SCHEMA IF NOT EXISTS plv8geo;
+create table IF NOT EXISTS public.plv8_modules(modname text primary key, load_on_start boolean, code text);
+CREATE SCHEMA IF NOT EXISTS plv8;
 
 
 
