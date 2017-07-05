@@ -15,7 +15,7 @@ inserts:js
 	echo "DELETE FROM plv8_modules WHERE modname = 'topojson';" > sql/ins_topojson.sql
 	echo "COPY plv8_modules (modname, load_on_start, code) FROM stdin;" >> sql/ins_topojson.sql
 	printf "topojson	t	" >> sql/ins_topojson.sql
-	tr -d '\n' < js/topojson.js | tr -d '\t' >> sql/ins_topojson.sql
+	sed ':begin;$!N;s/\n/\\n/;tbegin' < js/topojson.js | sed 's/\t/\\t/g' >> sql/ins_topojson.sql
 functions := sql/d3_arctogeom.sql \
          sql/d3_contour.sql \
 	 sql/d3_hexbin.sql \
