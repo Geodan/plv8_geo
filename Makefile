@@ -15,6 +15,7 @@ files := sql/d3_arctogeom.sql \
 
 plv8geo--0.0.1.sql: $(files) 
 	echo '\echo Use "CREATE EXTENSION plv8geo" to load this file. \quit' > $@
+	echo 'CREATE SCHEMA plv8;'
 	cat $^ >> $@
 
 DATA = plv8geo--0.0.1.sql  # script files to install
