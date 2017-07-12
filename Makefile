@@ -1,26 +1,43 @@
+
 all:
-	make inserts
+	make sql/inserts.sql
 	make plv8geo--0.0.1.sql
 
-inserts:
-	echo 'test' 
-
+cleanfiles:
+	rm sql/inserts.sql
+	rm plv8geo--0.0.1.sql
 	
-	#delaunator:=$(shell cat js/delaunator.js)
-	#echo "insert into plv8_modules values ('d3',true,$$js$$ $(delaunator) $$js$$) > sql/ins_delaunator.sql
+sql/inserts.sql:
+	printf "/** This will insert all javascript modules into a table **/" > sql/inserts.sql
+	printf "insert into plv8_modules values ('topojson',false,\$$js\$$" >> sql/inserts.sql 
+	cat js/topojson.js >> sql/inserts.sql
+	printf  "%s\$$js\$$);" >> sql/inserts.sql
+	
+	printf "insert into plv8_modules values ('delaunator',false,\$$js\$$" >> sql/inserts.sql 
+	cat js/delaunator.js >> sql/inserts.sql
+	printf  "%s\$$js\$$);" >> sql/inserts.sql
+	
+	printf "insert into plv8_modules values ('d3',false,\$$js\$$" >> sql/inserts.sql
+	cat js/d3.js >> sql/inserts.sql
+	printf  "%s\$$js\$$);" >> sql/inserts.sql
+	
+	printf "insert into plv8_modules values ('d3-contour',false,\$$js\$$" >> sql/inserts.sql
+	cat js/d3-contour.js >> sql/inserts.sql
+	printf  "%s\$$js\$$);" >> sql/inserts.sql
+	
+	printf "insert into plv8_modules values ('d3-force',false,\$$js\$$" >> sql/inserts.sql
+	cat js/d3-force.js >> sql/inserts.sql
+	printf  "%s\$$js\$$);" >> sql/inserts.sql
+	
+	printf "insert into plv8_modules values ('d3-hexbin',false,\$$js\$$" >> sql/inserts.sql
+	cat js/d3-hexbin.js >> sql/inserts.sql
+	printf  "%s\$$js\$$);" >> sql/inserts.sql
+	
+	printf "insert into plv8_modules values ('d3-geo',false,\$$js\$$" >> sql/inserts.sql
+	cat js/d3-geo.js >> sql/inserts.sql
+	printf  "%s\$$js\$$);" >> sql/inserts.sql
 
-
-inserts:js
-	printf 'insert into plv8_modules values (''d3'',true,$$js$$' > sql/ins_d3.sql
-	cat js/d3.min.js >> sql/ins_d3.sql
-	printf '$$js$$);' >> sql/ins_d3.sql
-	printf 'insert into plv8_modules values (''topojson'',true,$$js$$' > sql/ins_topojson.sql
-	cat js/topojson.js >> sql/ins_topojson.sql
-	printf '$$js$$);' >> sql/ins_topojson.sql
-
-
-functions := sql/ins_topojson.sql \
-	sql/ins_d3.sql \
+functions := sql/inserts.sql \
 	sql/d3_arctogeom.sql \
 	sql/d3_contour.sql \
 	sql/d3_hexbin.sql \
@@ -35,7 +52,6 @@ functions := sql/ins_topojson.sql \
 	sql/slope.sql 
 
 plv8geo--0.0.1.sql: $(functions) 
-	#cp dump.sql plv8geo--0.0.1.sql
 	cat headerfile.sql > $@
 	cat $^ >> $@
 
