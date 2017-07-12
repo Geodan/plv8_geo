@@ -57,7 +57,12 @@ plv8geo--0.0.1.sql: $(functions)
 
 EXTENSION = plv8geo        # the extensions name
 DATA = plv8geo--0.0.1.sql  # script files to install
-REGRESS = plv8geo_test     # our test script file (without extension)
+TESTS         = $(wildcard test/sql/*.sql)      # use test/sql/*.sql as test files
+REGRESS_OPTS  = --inputdir=test         \
+				--load-extension=plv8 \
+				--load-extension=postgis \
+                --load-extension=plv8geo 
+REGRESS       = $(patsubst test/sql/%.sql,%,$(TESTS))                
 # postgres build stuff
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
