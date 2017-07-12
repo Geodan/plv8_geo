@@ -1,23 +1,15 @@
 all:
-	make js
 	make inserts
 	make plv8geo--0.0.1.sql
 
-fileclean:
-	rm -rf js
+inserts:
+	echo 'test' 
 
-js:
-	mkdir js
-	cd js && \
-	wget https://unpkg.com/topojson@3.0.0 -O topojson.js && \
-	wget https://d3js.org/d3.v4.min.js -O d3.min.js && \
-	wget https://d3js.org/d3-contour.v1.min.js -O d3.contour.min.js
+	
+	#delaunator:=$(shell cat js/delaunator.js)
+	#echo "insert into plv8_modules values ('d3',true,$$js$$ $(delaunator) $$js$$) > sql/ins_delaunator.sql
 
 
-#
-inserts:js
-	D3:=$(shell cat js/d3.min.js)
-	echo "insert into plv8_modules values ('d3',true,$$js$$ $(D3) $$js$$) ON CONFLICT (modname) DO UPDATE SET code = $$js$$ $(D3) $$js$$ WHERE plv8_modules.modname = 'd3';" > sql/ins_d3.sql
 	#echo "DELETE FROM plv8_modules WHERE modname = 'topojson';" > sql/ins_topojson.sql
 	#echo "COPY plv8_modules (modname, load_on_start, code) FROM stdin;" >> sql/ins_topojson.sql
 	#printf "topojson	t	" >> sql/ins_topojson.sql
