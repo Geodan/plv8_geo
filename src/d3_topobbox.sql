@@ -1,5 +1,9 @@
-DROP FUNCTION  d3_topobbox(JSONB, JSONB);
-CREATE FUNCTION d3_topobbox(arc JSONB, transform JSONB)
+
+/**
+d3_topobbox
+**/
+DROP FUNCTION IF EXISTS plv8.d3_topobbox(JSONB, JSONB);
+CREATE FUNCTION plv8.d3_topobbox(arc JSONB, transform JSONB)
 RETURNS geometry
 immutable language plv8
 AS $$

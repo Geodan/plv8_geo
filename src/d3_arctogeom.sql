@@ -1,5 +1,9 @@
-DROP FUNCTION  IF EXISTS d3_arctogeom(JSONB, JSONB);
-CREATE FUNCTION d3_arctogeom(arc JSONB, transform JSONB)
+
+/**
+Arctogeom
+**/
+DROP FUNCTION  IF EXISTS plv8.d3_arctogeom(JSONB, JSONB);
+CREATE FUNCTION plv8.d3_arctogeom(arc JSONB, transform JSONB)
 RETURNS geometry
 immutable language plv8
 AS $$

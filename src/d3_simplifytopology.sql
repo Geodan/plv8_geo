@@ -1,5 +1,10 @@
-DROP FUNCTION d3_SimplifyTopology(JSONB, numeric);
-CREATE FUNCTION d3_SimplifyTopology(topology JSONB,factor numeric)
+
+/**
+d3_simlifytopology
+**/
+
+DROP FUNCTION IF EXISTS plv8.d3_SimplifyTopology(JSONB, numeric);
+CREATE FUNCTION plv8.d3_SimplifyTopology(topology JSONB,factor numeric)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$

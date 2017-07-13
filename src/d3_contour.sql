@@ -1,5 +1,9 @@
-﻿--DROP FUNCTION public.d3_contour(JSON, int);
-CREATE OR REPLACE FUNCTION public.d3_contour(gtiff bytea, tresholds int)
+
+/**
+d3_contour
+**/
+DROP FUNCTION IF EXISTS plv8.d3_contour(JSON, int);
+CREATE OR REPLACE FUNCTION plv8.d3_contour(gtiff bytea, tresholds int)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
@@ -24,7 +28,8 @@ as $$
 	return contours;
 $$;
 
-CREATE OR REPLACE FUNCTION public.d3_contour(gtiff bytea, tresholds int[])
+DROP FUNCTION IF EXISTS plv8.d3_contour(gtiff bytea, tresholds int[]);
+CREATE OR REPLACE FUNCTION plv8.d3_contour(gtiff bytea, tresholds int[])
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
@@ -50,20 +55,21 @@ as $$
 	return contours;
 $$;
 
-
-
-CREATE OR REPLACE FUNCTION public.d3_contour(arr JSON)
+/*TODO fix this
+DROP FUNCTION IF EXISTS plv8.d3_contour(arr JSON);
+CREATE OR REPLACE FUNCTION plv8.d3_contour(arr JSON)
   RETURNS JSONB AS
-' SELECT public.d3_contour($1,10) '
+' SELECT plv8.d3_contour($1,10) '
   LANGUAGE sql STABLE STRICT
-  COST 100;
+  COST 100;*/
 
 
 
 
 
-/*EXAMPLE USES:
-select plv8_startup();
+/*
+EXAMPLE USES:
+select plv8.plv8_startup();
 do language plv8 'load_module("d3")';
 do language plv8 'load_module("d3_contour")';
 
@@ -89,7 +95,7 @@ WITH bounds AS (
 	SELECT ROW(1, '-10-300:-10-300', '8BUI', NULL)::reclassarg arg
 )
 ,contours AS (
-	SELECT d3_contour(ST_AsTiff(
+	SELECT plv8.d3_contour(ST_AsTiff(
 		ST_Reclass(
 		  ST_Resample(
 			ST_Clip(ST_Union(rast), geom)
@@ -111,3 +117,5 @@ SELECT
 		,ST_UpperleftX(rast),ST_UpperleftY(rast)
 	) geom
 FROM contours
+
+*/

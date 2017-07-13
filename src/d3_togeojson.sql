@@ -1,5 +1,9 @@
-DROP FUNCTION  d3_ToGeoJson(JSONB,JSONB,JSONB);
-CREATE FUNCTION d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
+
+/**
+d3_togeojson
+**/
+DROP FUNCTION IF EXISTS plv8.d3_ToGeoJson(JSONB,JSONB,JSONB);
+CREATE FUNCTION plv8.d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
 RETURNS JSONB
 immutable language plv8
 as $$

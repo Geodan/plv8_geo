@@ -1,22 +1,17 @@
-DROP FUNCTION public.d3_slopecontours(gtiff bytea,tresholds int);
-CREATE OR REPLACE FUNCTION public.d3_slopecontours(gtiff bytea,tresholds int)
-RETURNS SETOF JSONB
+/**
+slope
+**/
+DROP FUNCTION IF EXISTS plvg.slope(bytea);
+CREATE OR REPLACE FUNCTION plv8.slope(gtiff bytea)
+RETURNS JSONB
 immutable language plv8
 as $$
-	const flatten = arr => arr.reduce(
-	  (acc, val) => acc.concat(
-		Array.isArray(val) ? flatten(val) : val
-	  ),
-	  []
-	);
-
 	var startT = new Date();
 	var bytes8 = gtiff;
 	var bytes16 = new Uint16Array(bytes8.buffer);
 	var tiff = GeoTIFF.parse(bytes16.buffer);
-	var image = tiff.getImage(),
-	  m = image.getHeight(),
-	  n = image.getWidth();
+	var image = tiff.getImage();
+	
 	var rasters = image.readRasters();
 	var tiepoint = image.getTiePoints()[0];
 	var pixelScale = image.getFileDirectory().ModelPixelScale;
@@ -53,33 +48,21 @@ as $$
 	    */
 	  }
 	}
-	//plv8.elog(NOTICE,shadedData);
-	var contours = d3.contours()
-	    .size([n, m])
-	    .thresholds(tresholds)
-	    .smooth(true)
-	    (flatten(shadedData));
 	var endT = new Date();
 	plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
-
-	return contours;
+	//plv8.elog(NOTICE,shadedData);
+	return shadedData;
 $$;
 
-/*EXAMPLE USES:*/
-select plv8_startup();
-do language plv8 'load_module("geotiff")';
-SET postgis.enable_outdb_rasters = True;
-SET postgis.gdal_enabled_drivers = 'ENABLE_ALL';
+/*EXAMPLE USES:
+select plv8.plv8_startup();
+do language plv8 'load_module("d3")';
+do language plv8 'load_module("d3_contour")';
 
-WITH bounds AS (
-	SELECT (ST_MakeEnvelope(120344,488936, 120370,488957,28992)) geom
-)
-,slope AS (
-	SELECT 
-	d3_slopecontours(ST_AsTiff(ST_Clip(ST_Union(rast), geom)),10) AS contour 
-	FROM ahn3_raster.rast50cm_tiled, bounds
-	WHERE ST_Intersects(rast, geom)
-	GROUP BY geom
-)
-SELECT ST_GeomFromGeoJson(contour::TEXT) FROM slope;
-/**/
+
+WITH foo AS (
+	SELECT ST_SetValue(ST_AddBand(ST_MakeEmptyRaster(3, 3, 0, 0, 1, -1, 0, 0, 0), 1, '8BUI', 1, 0), 1, 2, 5) AS rast
+) 
+SELECT plv8.slope(ST_AsTiff(rast)) AS values FROM foo;
+
+*/
