@@ -6,7 +6,6 @@ PLV8 functions for geospatial data
 ## Installation
 ### Prerequisites
  plv8 [https://github.com/plv8/plv8] 
- plv8_libloader [https://github.com/geodan/plv8_libloader]
 
 ### Build
 On a linux machine (tested on Ubuntu 17.04), clone the git repository and run:
@@ -14,13 +13,48 @@ On a linux machine (tested on Ubuntu 17.04), clone the git repository and run:
 make
 sudo make install
 ```
+
+## Testing
+You can test to see if the library will load and run on your system with:
+```
+make installcheck (optional: PGUSER=username PGHOST=myhost etc..)
+```
 ### Creating extension
 In your sql prompt run `CREATE EXTENSION plv8geo`
 This will put all the plv8geo stuff into a new schema called plv8. Functions will be available from this schema.
 
 ## List of functions
 
-### d3_contour
+### plv8.d3_totopojson
+Usage:
+```sql
+SELECT plv8.d3_totopojson(<featurecollection>::JSONB)
+```
+Returns topology
+### plv8.d3_simplifytopology
+Usage:
+```sql
+SELECT plv8.d3_simplifytopology(<topology>::JSONB,<factor>::numeric)
+```
+Returns topology::JSONB
+
+### plv8.d3_mergetopology
+Usage:
+```sql
+SELECT plv8.mergetopology(<topojson>::JSONB,<propertykey>::TEXT)
+```
+Merges the features ins the topology based on a common property.
+Return set of geojson::JSONB features
+
+### plv8.d3_topologytofeatures
+Usage:
+```sql
+SELECT plv8.d3_topologytofeatures(<topojson>::JSONB)
+```
+Returns set of geojson features
+
+
+### plv8.d3_contour
 Usage: 
 d3_contour()
 ```sql
