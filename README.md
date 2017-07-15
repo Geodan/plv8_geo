@@ -27,16 +27,16 @@ sudo make install
 ```
 Note: the make step is only needed when you want to add libraries yourself. It would be necessary to edit the Makefile in order for these libraries to be loaded.
 
-## Testing
+### Test
 You can test to see if the library will load and run on your system with:
 ```
 make installcheck (optional: PGUSER=username PGHOST=myhost etc..)
 ```
-### Creating extension
+### Create extension
 In your sql prompt run `CREATE EXTENSION plv8geo`
 This will put all the plv8geo stuff into a new schema called plv8. Functions will be available from this schema.
 
-## List of functions
+## Available functions
 
 ### plv8.d3_totopojson
 Usage:
@@ -82,4 +82,32 @@ WITH foo AS (
 SELECT plv8.d3_contour(array_to_json(ST_DumpValues(rast, 1))) AS values FROM foo;
 ```
 
+## Examples
 
+Simplify an existing set of geometries topologically
+
+```sql
+
+```
+
+#### Create contours out of a raster
+```sql
+select plv8.plv8_startup();
+do language plv8 'load_module("d3-contour")';
+do language plv8 'load_module("geotiff")';
+SET postgis.gdal_enabled_drivers = 'ENABLE_ALL';
+
+
+WITH foo AS (
+	SELECT ST_SetValue(ST_AddBand(ST_MakeEmptyRaster(3, 3, 0, 0, 1, -1, 0, 0, 0), 1, '8BUI', 1, 0), 1, 2, 5) AS rast
+) 
+,args AS (
+	SELECT ROW(1, '-10-300:-10-300', '16BUI', NULL)::reclassarg arg
+)
+SELECT plv8.d3_contour(
+ST_AsTiff(
+ST_Reclass(
+rast,arg
+)
+),10) AS values FROM args,foo;
+```
