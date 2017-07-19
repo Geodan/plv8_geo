@@ -13,6 +13,10 @@ src/inserts.sql:
 	cat js/topojson.js >> src/inserts.sql
 	printf  "%s\$$js\$$);" >> src/inserts.sql
 	
+	printf "insert into plv8_modules values ('geotiff',false,\$$js\$$" >> src/inserts.sql 
+	cat js/geotiff.js >> src/inserts.sql
+	printf  "%s\$$js\$$);" >> src/inserts.sql
+	
 	printf "insert into plv8_modules values ('delaunator',false,\$$js\$$" >> src/inserts.sql 
 	cat js/delaunator.js >> src/inserts.sql
 	printf  "%s\$$js\$$);" >> src/inserts.sql

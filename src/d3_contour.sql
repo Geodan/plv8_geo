@@ -10,6 +10,7 @@ as $$
 	var startT = new Date();
 	var bytes8 = gtiff;
 	var bytes16 = new Uint16Array(bytes8.buffer);
+	//FIXME: namespace for geotiff
 	var tiff = GeoTIFF.parse(bytes16.buffer);
 	var image = tiff.getImage(),
       values = image.readRasters()[0],
@@ -37,7 +38,8 @@ as $$
 	var startT = new Date();
 	var bytes8 = gtiff;
 	var bytes16 = new Uint16Array(bytes8.buffer);
-	var tiff = GeoTIFF.parse(bytes16.buffer);
+	//FIXME: namespace for geotiff
+	var tiff = GeoTIFF.GeoTIFF.parse(bytes16.buffer);
 	var image = tiff.getImage(),
       values = image.readRasters()[0],
       m = image.getHeight(),
@@ -71,7 +73,7 @@ CREATE OR REPLACE FUNCTION plv8.d3_contour(arr JSON)
 EXAMPLE USES:
 select plv8.plv8_startup();
 do language plv8 'load_module("d3")';
-do language plv8 'load_module("d3_contour")';
+do language plv8 'load_module("d3-contour")';
 
 
 WITH foo AS (
@@ -83,7 +85,7 @@ SELECT d3_contour(array_to_json(ST_DumpValues(rast, 1))) AS values FROM foo;
 
 
 do language plv8 'load_module("d3")';
-do language plv8 'load_module("d3_contour")';
+do language plv8 'load_module("d3-contour")';
 do language plv8 'load_module("geotiff")';
 
 DROP TABLE IF EXISTS tmp.tmp;
