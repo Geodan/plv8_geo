@@ -36,6 +36,10 @@ make installcheck (optional: PGUSER=username PGHOST=myhost etc..)
 In your sql prompt run `CREATE EXTENSION plv8geo`
 This will put all the plv8geo stuff into a new schema called plv8. Functions will be available from this schema.
 
+In order to have the libraries loaded at startup time, add the following to postgresql.conf: 
+`plv8.startproc = 'plv8.plv8_startup'`
+
+
 ## Available functions
 
 ### plv8.d3_totopojson
