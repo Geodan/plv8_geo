@@ -14,7 +14,7 @@ This extension will load a couple of hand-picked javascript geometry-related lib
 
 ## Installation
 ### Prerequisites
- PostgreSQL 6.4 with PL/v8 2.0.3 [https://github.com/plv8/plv8] 
+ PostgreSQL 9.4 with PL/v8 2.0.3 [https://github.com/plv8/plv8] 
  
  note: PLv8 2.0.3 packages not available yet, requires manual build See the instructions over here: https://github.com/plv8/plv8/blob/master/doc/plv8.md#installing-plv8 (make sure to use make static in order to get the latest v8 engine)
  Older plv8 packages do not support newer ECMAscript version and therefor most libraries do not work (even refuse to install)
