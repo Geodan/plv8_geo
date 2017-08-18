@@ -12,7 +12,23 @@ This extension will load a couple of hand-picked javascript geometry-related lib
  - geotiff: 0.4.1,
  - topojson: 3.0.0
 
-## Installation
+## Docker support
+
+Run database with everything installed on Docker:
+
+```
+$ docker run -p 5432:5432 geodan/postgis_plv8_geo
+```
+
+login with: postgres/postgres
+
+Command for building image:
+
+```
+$ docker build -t geodan/postgis_plv8_geo .
+```
+
+## Manual Installation
 ### Prerequisites
  PostgreSQL 9.4 with PL/v8 2.0.3 [https://github.com/plv8/plv8] 
  
@@ -26,22 +42,6 @@ make
 sudo make install
 ```
 Note: the make step is only needed when you want to add libraries yourself. It would be necessary to edit the Makefile in order for these libraries to be loaded.
-
-## Docker
-
-Run database with everything installed on Docker:
-
-```
-$ docker run -p 5432:5432 geodan/postgis_plv8_geo
-```
-
-u/p: postgres/postgres
-
-Command for building image:
-
-```
-$ docker build -t geodan/postgis_plv8_geo .
-```
 
 ### Test
 You can test to see if the library will load and run on your system with:
