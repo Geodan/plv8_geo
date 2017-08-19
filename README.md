@@ -110,6 +110,12 @@ SELECT plv8.delaunator(<multipoint>::JSONB)
 ```
 returns JSONB
 
+### plv8.earcut
+Usage:
+```sql
+SELECT plv8.earcut(<geometry>::JSONB)
+```
+
 ## Examples
 
 Simplify an existing set of geometries topologically
@@ -152,4 +158,9 @@ FROM points
 Do a hexbin aggregate over a set of 3 points
 ```sql
 SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["foo","bar","baz"]'::JSON,1);
+```
+
+Run earcut on a polygon
+```sql
+SELECT plv8.earcut(ST_AsGeoJson(ST_MakeEnvelope(0,0,10,10))::JSONB);
 ```
