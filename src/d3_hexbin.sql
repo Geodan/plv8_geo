@@ -36,7 +36,7 @@ select plv8.plv8_startup();
 do language plv8 'load_module("d3")';
 do language plv8 'load_module("d3-hexbin")';
 
-SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["aap","noot","mies"]'::JSON,1);
+SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["foo","bar","baz"]'::JSON,1);
 
 DROP TABLE IF EXISTS tmp.hexbin;
 CREATE TABLE tmp.hexbin AS 
