@@ -26,7 +26,7 @@ let res = bins.map(b=>{
 });
 //plv8.elog(NOTICE,JSON.stringify(res));
 var endT = new Date();
-plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+//plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
 
 return res;
 
