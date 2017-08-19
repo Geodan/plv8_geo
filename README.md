@@ -12,9 +12,25 @@ This extension will load a couple of hand-picked javascript geometry-related lib
  - geotiff: 0.4.1,
  - topojson: 3.0.0
 
-## Installation
+## Docker support
+
+Run database with everything installed on Docker:
+
+```
+$ docker run -p 5432:5432 geodan/postgis_plv8_geo
+```
+
+login with: postgres/postgres
+
+Command for building image:
+
+```
+$ docker build -t geodan/postgis_plv8_geo .
+```
+
+## Manual Installation
 ### Prerequisites
- PostgreSQL 6.4 with PL/v8 2.0.3 [https://github.com/plv8/plv8] 
+ PostgreSQL 9.4 with PL/v8 2.0.3 [https://github.com/plv8/plv8] 
  
  note: PLv8 2.0.3 packages not available yet, requires manual build See the instructions over here: https://github.com/plv8/plv8/blob/master/doc/plv8.md#installing-plv8 (make sure to use make static in order to get the latest v8 engine)
  Older plv8 packages do not support newer ECMAscript version and therefor most libraries do not work (even refuse to install)
@@ -35,6 +51,10 @@ make installcheck (optional: PGUSER=username PGHOST=myhost etc..)
 ### Create extension
 In your sql prompt run `CREATE EXTENSION plv8geo`
 This will put all the plv8geo stuff into a new schema called plv8. Functions will be available from this schema.
+
+In order to have the libraries loaded at startup time, add the following to postgresql.conf: 
+`plv8.startproc = 'plv8.plv8_startup'`
+
 
 ## Available functions
 
