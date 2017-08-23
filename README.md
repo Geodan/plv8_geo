@@ -89,25 +89,65 @@ Returns set of geojson features
 
 ### plv8.d3_contour
 Usage: 
-d3_contour()
 ```sql
-select plv8_startup();
-do language plv8 'load_module("d3")';
-do language plv8 'load_module("d3_contour")';
-
-
 WITH foo AS (
 	SELECT ST_SetValue(ST_AddBand(ST_MakeEmptyRaster(3, 3, 0, 0, 1, -1, 0, 0, 0), 1, '8BUI', 1, 0), 1, 2, 5) AS rast
 ) 
 SELECT plv8.d3_contour(array_to_json(ST_DumpValues(rast, 1))) AS values FROM foo;
 ```
 
+### plv8.d3_hexbin
+Usage:
+```sql
+SELECT plv8.d3_hexbin(<array of [x,y]::JSON,<array of keys>::JSON,radius::INTEGER);
+```
+returns setof JSONB with {x:centerx, y:centery, data:[{all points in hexagon, with their data}]}
+
+### plv8.delaunator
+Usage:
+```sql
+SELECT plv8.delaunator(<multipoint>::JSONB)
+```
+returns JSONB
+
+### plv8.earcut
+Usage:
+```sql
+SELECT plv8.earcut(<geometry>::JSONB)
+```
+returns JSONB with GeoJSON of multipolygon
+
 ## Examples
 
 Simplify an existing set of geometries topologically
 
 ```sql
-
+WITH geojson as (
+	SELECT json_build_object(
+	'type', 'FeatureCollection',
+	'features', json_agg(
+		json_build_object(
+			'type',          'Feature',
+			'geometry',  ST_AsGeoJSON(ST_ForceRHR(geom))::json,
+			'properties', ('{"ogc_fid":' || ogc_fid || '}')::jsonb
+		)
+	)
+	)::jsonb as geojson 
+	FROM france.departement
+)
+, topojson as (
+	SELECT plv8.d3_totopojson(geojson, 1e8) topojson FROM geojson
+)
+, simplified as (
+	SELECT plv8.d3_simplifytopology(topojson, 0.01) simplifiedtopojson FROM topojson
+)
+, features as (
+	SELECT plv8.d3_topologytofeatures(simplifiedtopojson) geojsonfeature FROM simplified
+)
+SELECT 
+	st_setsrid(st_geomFromGeoJson(geojsonfeature->>'geometry'),4326) as geom,
+  (geojsonfeature->'properties'->>'ogc_fid')::integer as ogc_fid 
+FROM features;
 ```
 
 #### Create contours out of a raster
@@ -130,4 +170,23 @@ ST_Reclass(
 rast,arg
 )
 ),10) AS values FROM args,foo;
+```
+
+Run delaunator over a set of 10000 points
+```sql
+WITH points AS (
+	SELECT ST_GeneratePoints(ST_MakeEnvelope(0,0,100,100),10000) geom
+)
+SELECT plv8.delaunator(ST_AsGeoJson(geom)::JSONB)
+FROM points
+```
+
+Do a hexbin aggregate over a set of 3 points
+```sql
+SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["foo","bar","baz"]'::JSON,1);
+```
+
+Run earcut on a polygon
+```sql
+SELECT plv8.earcut(ST_AsGeoJson(ST_MakeEnvelope(0,0,10,10))::JSONB);
 ```

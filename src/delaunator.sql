@@ -126,9 +126,9 @@ WITH points AS (
 )-- 1.1 seconds (1,000,000 points) SELECT count(*) FROM points
 ,delaunator_agg AS (
 	SELECT 
-	plv8.delaunator_agg((PC_Get(pt,'x'),PC_Get(pt,'y'))::plv8.dpoint)
+	plv8.delaunator_agg((PC_Get(pt,'x'),PC_Get(pt,'y'),0)::plv8.dpoint)
 	FROM points
-)
+) --infinite with a million points :(
 ,delaunator AS (
 	SELECT plv8.delaunator(ST_AsGeoJson(ST_Collect(Geometry(pt)))::JSONB)
 	FROM points
@@ -143,10 +143,4 @@ WITH points AS (
 ) --13.1 seconds
 SELECT count(*) FROM delaunator
 
-
-
-
-select plv8.plv8_startup();
-do language plv8 'load_module("delaunator")';
-SELECT plv8.delaunator([[1,1],[10,10],[5,5]]) AS values FROM foo;
 */

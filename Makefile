@@ -1,11 +1,11 @@
 
 all:
 	make src/inserts.sql
-	make plv8geo--0.0.1.sql
+	make plv8geo--0.0.2.sql
 
 cleanfiles:
 	rm src/inserts.sql
-	rm plv8geo--0.0.1.sql
+	rm plv8geo--0.0.2.sql
 	
 src/inserts.sql:
 	printf "/** This will insert all javascript modules into a table **/" > src/inserts.sql
@@ -19,6 +19,10 @@ src/inserts.sql:
 	
 	printf "insert into plv8_modules values ('delaunator',false,\$$js\$$" >> src/inserts.sql 
 	cat js/delaunator.js >> src/inserts.sql
+	printf  "%s\$$js\$$);" >> src/inserts.sql
+
+	printf "insert into plv8_modules values ('earcut',false,\$$js\$$" >> src/inserts.sql 
+	cat js/earcut.js >> src/inserts.sql
 	printf  "%s\$$js\$$);" >> src/inserts.sql
 	
 	printf "insert into plv8_modules values ('d3',false,\$$js\$$" >> src/inserts.sql
@@ -53,6 +57,7 @@ functions := src/inserts.sql \
 	src/d3_topologytofeatures.sql \
 	src/d3_totopojson.sql \
 	src/delaunator.sql \
+	src/earcut.sql \
 	src/slope.sql 
 
 plv8geo--0.0.1.sql: $(functions) 
@@ -60,7 +65,7 @@ plv8geo--0.0.1.sql: $(functions)
 	cat $^ >> $@
 
 EXTENSION = plv8geo        # the extensions name
-DATA = plv8geo--0.0.1.sql  # script files to install
+DATA = plv8geo--0.0.2.sql  # script files to install
 TESTS         = $(wildcard test/sql/*.sql)      # use test/sql/*.sql as test files
 REGRESS_OPTS  = --inputdir=test         \
 				--load-extension=plv8 \
