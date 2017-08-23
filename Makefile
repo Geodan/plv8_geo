@@ -60,7 +60,7 @@ functions := src/inserts.sql \
 	src/earcut.sql \
 	src/slope.sql 
 
-plv8geo--0.0.1.sql: $(functions) 
+plv8geo--0.0.2.sql: $(functions) 
 	cat src/headerfile.sql > $@
 	cat $^ >> $@
 
