@@ -115,13 +115,39 @@ Usage:
 ```sql
 SELECT plv8.earcut(<geometry>::JSONB)
 ```
+returns JSONB with GeoJSON of multipolygon
 
 ## Examples
 
 Simplify an existing set of geometries topologically
 
 ```sql
-
+WITH geojson as (
+	SELECT json_build_object(
+	'type', 'FeatureCollection',
+	'features', json_agg(
+		json_build_object(
+			'type',          'Feature',
+			'geometry',  ST_AsGeoJSON(ST_ForceRHR(geom))::json,
+			'properties', ('{"ogc_fid":' || ogc_fid || '}')::jsonb
+		)
+	)
+	)::jsonb as geojson 
+	FROM france.departement
+)
+, topojson as (
+	SELECT plv8.d3_totopojson(geojson, 1e8) topojson FROM geojson
+)
+, simplified as (
+	SELECT plv8.d3_simplifytopology(topojson, 0.01) simplifiedtopojson FROM topojson
+)
+, features as (
+	SELECT plv8.d3_topologytofeatures(simplifiedtopojson) geojsonfeature FROM simplified
+)
+SELECT 
+	st_setsrid(st_geomFromGeoJson(geojsonfeature->>'geometry'),4326) as geom,
+  (geojsonfeature->'properties'->>'ogc_fid')::integer as ogc_fid 
+FROM features;
 ```
 
 #### Create contours out of a raster
