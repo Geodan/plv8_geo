@@ -153,6 +153,7 @@ FROM features;
 #### Create contours out of a raster
 ```sql
 select plv8.plv8_startup();
+do language plv8 'load_module("d3")';
 do language plv8 'load_module("d3-contour")';
 do language plv8 'load_module("geotiff")';
 SET postgis.gdal_enabled_drivers = 'ENABLE_ALL';
