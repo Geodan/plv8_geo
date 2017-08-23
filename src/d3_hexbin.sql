@@ -26,7 +26,7 @@ let res = bins.map(b=>{
 });
 //plv8.elog(NOTICE,JSON.stringify(res));
 var endT = new Date();
-plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
+//plv8.elog(NOTICE,'CalcTime: ' + (endT - startT)/1000);
 
 return res;
 
@@ -34,9 +34,9 @@ $$;
 /* TEST 
 select plv8.plv8_startup();
 do language plv8 'load_module("d3")';
-do language plv8 'load_module("d3_hexbin")';
+do language plv8 'load_module("d3-hexbin")';
 
-SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["aap","noot","mies"]'::JSON);
+SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["foo","bar","baz"]'::JSON,1);
 
 DROP TABLE IF EXISTS tmp.hexbin;
 CREATE TABLE tmp.hexbin AS 
@@ -47,9 +47,9 @@ SELECT ST_Transform(ST_MakeEnvelope(524596,6855645 ,562126,6876847,3857),28992) 
 ,palen AS (
 	SELECT 
 	ARRAY[ST_X(geom), ST_Y(geom)] geom
-	,'test':: as val
+	,'test'::text as val
 	,gebrksdoel 
-	FROM bagagn_201702.adressen , bounds WHERE ST_Intersects(box,geom)
+	FROM bagagn_201704.adressen , bounds WHERE ST_Intersects(box,geom)
 --AND gebrksdoel = 'onderwijsfunctie'
 )
 ,hexbin AS (
