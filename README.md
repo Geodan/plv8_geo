@@ -9,6 +9,7 @@ This extension will load a couple of hand-picked javascript geometry-related lib
  - d3-geo: 1.6.3,
  - d3-hexbin: 0.2.2,
  - delaunator: 1.0.2,
+ - earcut: 2.1.1
  - geotiff: 0.4.1,
  - topojson: 3.0.0
 
