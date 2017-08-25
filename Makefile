@@ -45,6 +45,11 @@ src/inserts.sql:
 	cat js/d3-geo.js >> src/inserts.sql
 	printf  "%s\$$js\$$);" >> src/inserts.sql
 
+	printf "insert into plv8_modules values ('jsts',false,\$$js\$$" >> src/inserts.sql
+	cat js/jsts.js >> src/inserts.sql
+	printf  "%s\$$js\$$);" >> src/inserts.sql
+
+
 functions := src/inserts.sql \
 	src/d3_arctogeom.sql \
 	src/d3_contour.sql \
@@ -58,7 +63,8 @@ functions := src/inserts.sql \
 	src/d3_totopojson.sql \
 	src/delaunator.sql \
 	src/earcut.sql \
-	src/slope.sql 
+	src/slope.sql \
+	src/jsts_voronoi.sql
 
 plv8geo--0.0.2.sql: $(functions) 
 	cat src/headerfile.sql > $@
