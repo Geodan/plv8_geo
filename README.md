@@ -9,8 +9,10 @@ This extension will load a couple of hand-picked javascript geometry-related lib
  - d3-geo: 1.6.3,
  - d3-hexbin: 0.2.2,
  - delaunator: 1.0.2,
+ - earcut: 2.1.1
  - geotiff: 0.4.1,
- - topojson: 3.0.0
+ - topojson: 3.0.0,
+ - jsts: 1.4.0
 
 ## Docker support
 
@@ -117,6 +119,13 @@ SELECT plv8.earcut(<geometry>::JSONB)
 ```
 returns JSONB with GeoJSON of multipolygon
 
+### plv8.jsts_voronoi
+Usage:
+```sql
+SELECT plv8.jsts_voronoi(<multipoint geometry>::JSONB)
+```
+returns JSONB with GeoJSON of multipolygon
+
 ## Examples
 
 Simplify an existing set of geometries topologically
@@ -190,4 +199,18 @@ SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["foo","bar","baz"]'::J
 Run earcut on a polygon
 ```sql
 SELECT plv8.earcut(ST_AsGeoJson(ST_MakeEnvelope(0,0,10,10))::JSONB);
+```
+
+Create a voronoi out of 10k points
+```sql
+WITH points as (
+	SELECT ST_GeneratePoints(ST_MakeEnvelope(0,0,100,100),10000) geom
+)
+,jsts AS (
+	SELECT ST_GeomFromGeoJson(plv8.jsts_voronoi(ST_AsGeoJson(geom)::jsonb)::text) geom FROM points
+),
+geos AS ( --added exactly the same function from geos for comparison
+	SELECT ST_VoronoiPolygons(geom) geom FROM points
+)
+SELECT (ST_Dump(geom)).geom FROM jsts
 ```
