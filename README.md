@@ -58,6 +58,21 @@ In order to have the libraries loaded at startup time, add the following to post
 `plv8.startproc = 'plv8.plv8_startup'`
 
 
+## Getting started
+
+Sample getting started for running D3.js function Hexbin (https://github.com/d3/d3-hexbin):
+
+sql:> select plv8.plv8_startup();
+sql:> do language plv8 'load_module("d3")';
+sql:> do language plv8 'load_module("d3-hexbin")';
+sql:> SELECT plv8.d3_hexbin(('[[1,2],[0.5,0.5],[2,2]]')::json,'["foo","bar","baz"]'::JSON,1);
+
+Returns:
+
+"{"x": 0.8660254037844386, "y": 1.5, "data": [{"0": 1, "1": 2, "key": "foo"}]}"
+"{"x": 0, "y": 0, "data": [{"0": 0.5, "1": 0.5, "key": "bar"}]}"
+"{"x": 2.598076211353316, "y": 1.5, "data": [{"0": 2, "1": 2, "key": "baz"}]}"
+
 ## Available functions
 
 ### plv8.d3_totopojson
