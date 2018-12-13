@@ -3,7 +3,7 @@ do language plv8 ' load_module("topojson"); ';
 WITH entities AS (
 	SELECT St_MakeEnvelope(0,0,10,10) geom
 	UNION ALL
-	SELECT St_MakeEnvelope(0,10,0,20) geom
+	SELECT St_MakeEnvelope(5,5,15,15) geom
 )
 ,geometry as (
 	SELECT st_asgeojson(geom) geom 
