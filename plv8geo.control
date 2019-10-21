@@ -1,5 +1,5 @@
 # plv8geo extension
 comment = 'plv8geo functions'
 requires = 'plv8,postgis'
-default_version = '0.0.1'
+default_version = '0.0.2'
 schema = 'plv8geo'
