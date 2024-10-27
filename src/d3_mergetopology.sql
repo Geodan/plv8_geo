@@ -3,11 +3,12 @@
 d3_mergetopology
 **/
 
-DROP FUNCTION IF EXISTS plv8.d3_MergeTopology(JSONB, TEXT);
-CREATE FUNCTION plv8.d3_MergeTopology(topology JSONB,mergekey TEXT)
+--DROP FUNCTION IF EXISTS plv8.d3_MergeTopology(JSONB, TEXT);
+CREATE OR REPLACE FUNCTION plv8.d3_MergeTopology(topology JSONB,mergekey TEXT)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
+try {
 	var startT = new Date();
 	var feats = [];
 	var data = topojson.feature(topology, topology.objects.entities).features;
@@ -36,4 +37,9 @@ as $$
 	var endT = new Date();
 	//plv8.elog(NOTICE,'Mergetime: ' + (endT - startT)/1000);
 	return feats;
+}
+catch (e) {
+	//plv8.elog(ERROR,e);
+	return false;
+}
 $$;

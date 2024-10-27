@@ -2,11 +2,12 @@
 /**
 d3_togeojson
 **/
-DROP FUNCTION IF EXISTS plv8.d3_ToGeoJson(JSONB,JSONB,JSONB);
-CREATE FUNCTION plv8.d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
+--DROP FUNCTION IF EXISTS plv8.d3_ToGeoJson(JSONB,JSONB,JSONB);
+CREATE OR REPLACE FUNCTION plv8.d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
 RETURNS JSONB
 immutable language plv8
 as $$
+try {
 	var startT = new Date();
 	
 	var result = [];
@@ -49,4 +50,10 @@ as $$
 	//plv8.elog(NOTICE,'Topotime: ' + (endT - startT)/1000);
 	//plv8.elog(NOTICE,JSON.stringify(entity));	
 	return entity;
+} 
+catch(e) {
+        //plv8.elog(ERROR,e);
+        return false;
+}
+
 $$;

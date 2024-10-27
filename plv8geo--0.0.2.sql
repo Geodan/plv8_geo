@@ -30731,11 +30731,12 @@ FROM hexbin;
 d3_mergetopology
 **/
 
-DROP FUNCTION IF EXISTS plv8.d3_MergeTopology(JSONB, TEXT);
-CREATE FUNCTION plv8.d3_MergeTopology(topology JSONB,mergekey TEXT)
+--DROP FUNCTION IF EXISTS plv8.d3_MergeTopology(JSONB, TEXT);
+CREATE OR REPLACE FUNCTION plv8.d3_MergeTopology(topology JSONB,mergekey TEXT)
 RETURNS SETOF JSONB
 immutable language plv8
 as $$
+try {
 	var startT = new Date();
 	var feats = [];
 	var data = topojson.feature(topology, topology.objects.entities).features;
@@ -30764,6 +30765,11 @@ as $$
 	var endT = new Date();
 	//plv8.elog(NOTICE,'Mergetime: ' + (endT - startT)/1000);
 	return feats;
+}
+catch (e) {
+	//plv8.elog(ERROR,e);
+	return false;
+}
 $$;
 
 /**
@@ -30876,11 +30882,12 @@ SELECT ST_GeomFromGeoJson(contour::TEXT) FROM slope;
 /**
 d3_togeojson
 **/
-DROP FUNCTION IF EXISTS plv8.d3_ToGeoJson(JSONB,JSONB,JSONB);
-CREATE FUNCTION plv8.d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
+--DROP FUNCTION IF EXISTS plv8.d3_ToGeoJson(JSONB,JSONB,JSONB);
+CREATE OR REPLACE FUNCTION plv8.d3_ToGeoJson(entity JSONB,arcs JSONB, transform JSONB)
 RETURNS JSONB
 immutable language plv8
 as $$
+try {
 	var startT = new Date();
 	
 	var result = [];
@@ -30923,6 +30930,12 @@ as $$
 	//plv8.elog(NOTICE,'Topotime: ' + (endT - startT)/1000);
 	//plv8.elog(NOTICE,JSON.stringify(entity));	
 	return entity;
+} 
+catch(e) {
+        //plv8.elog(ERROR,e);
+        return false;
+}
+
 $$;
 
 /**
@@ -30980,17 +30993,23 @@ $$;
 /**
 d3_totopojson
 **/
-DROP FUNCTION IF EXISTS plv8.d3_ToTopojson(collection JSONB, numeric);
-CREATE FUNCTION plv8.d3_ToTopojson(collection JSONB,q numeric)
+--DROP FUNCTION IF EXISTS plv8.d3_ToTopojson(collection JSONB, numeric);
+CREATE OR REPLACE FUNCTION plv8.d3_ToTopojson(collection JSONB,q numeric)
 RETURNS JSONB
 immutable language plv8
 as $$
+try{
 	var startT = new Date();
 	var topo = topojson.topology({entities: collection},q);
 	var endT = new Date();
 	//plv8.elog(NOTICE,'Topotime: ' + (endT - startT)/1000);
 	//plv8.elog(NOTICE,JSON.stringify(topo));
 	return topo;
+}
+catch(e) {
+	//plv8.elog(ERROR,e);
+	return false;
+}
 $$;
 /**
 delaunator
